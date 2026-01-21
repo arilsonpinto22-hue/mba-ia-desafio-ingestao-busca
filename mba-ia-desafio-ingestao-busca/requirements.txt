@@ -7,6 +7,7 @@ langchain-postgres
 openai
 google-generativeai
 psycopg[binary]
+psycopg2-binary
 python-dotenv
 tiktoken
 pypdf

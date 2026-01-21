@@ -30,12 +30,12 @@ def get_env(name: str, default: str | None = None, required: bool = False) -> st
 
 def get_connection_string() -> str:
     return (
-        f"postgresql://"
+        f"postgresql+psycopg://"
         f"{get_env('PG_USER', 'postgres')}:"
         f"{get_env('PG_PASSWORD', 'postgres')}@"
         f"{get_env('PG_HOST', 'localhost')}:"
         f"{get_env('PG_PORT', '5432')}/"
-        f"{get_env('PG_DATABASE', 'ragdb')}"
+        f"{get_env('PG_DATABASE', 'rag')}"
     )
 
 
@@ -60,7 +60,7 @@ def get_vectorstore() -> PGVector:
     return PGVector(
         embeddings=get_embeddings(),
         collection_name=get_env("PG_COLLECTION", "docs_pdf"),
-        connection_string=get_connection_string(),
+        connection=get_connection_string(),
     )
 
 
