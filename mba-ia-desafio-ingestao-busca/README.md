@@ -1,5 +1,9 @@
 # Desafio MBA Engenharia de Software com IA - Full Cycle
 
+Aluno : Arilson da Silva Pinto
+Email : arilson.pinto@uol.com.br
+GITHUB:https://github.com/arilsonpinto22-hue/mba-ia-desafio-ingestao-busca
+
 # Ingestão e Busca Semântica com LangChain e Postgres
 
 Este projeto lê um PDF, indexa seus conteúdos em um PostgreSQL com pgVector e permite fazer perguntas via CLI, respondendo **apenas** com base no conteúdo do PDF.
@@ -42,7 +46,7 @@ Coloque seu arquivo como document.pdf na raiz do projeto.
 Execute:python src/ingest.py
 - O PDF será dividido em chunks de 1000 caracteres com overlap de 150.
 - Embeddings serão gerados (OpenAI ou Gemini).
-- Vetores serão armazenados no Postgres (pgVector).
+- Vetores serão armazenados no Postgres, banco de dados rag, tabelas langchain_pg_collection e langchain_pg_embedding (pgVector).
 
 
 5- Rodar o chat (CLI)

@@ -151,7 +151,11 @@ def ingest_documents(chunks: List[Document]) -> None:
         use_jsonb=True,
     )
 
-    # Garantir que as tabelas existam antes de inserir
+    # Reset total: Dropar tabelas antigas e recriar do zero
+    logger.info("Resetando banco de dados (drop tables) para garantir as dimensoes do vetor a ser utilizado pela IA (embeddings)")
+    vectorstore.drop_tables()
+    
+    logger.info("Criando novas tabelas langchain_pg_embedding e langchain_pg_collection")
     vectorstore.create_tables_if_not_exists()
     vectorstore.create_collection()
 
