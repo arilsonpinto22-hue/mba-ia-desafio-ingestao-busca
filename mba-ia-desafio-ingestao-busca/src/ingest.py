@@ -189,7 +189,6 @@ def ingestion() -> None:
     logger.info("Iniciando ingestão RAG com %d PDFs", len(pdf_files))
 
     documents = load_pdfs(pdf_files)
-    print(documents)
     chunks = split_documents(documents, max_chunks=1000)
     ingest_documents(chunks)
 
