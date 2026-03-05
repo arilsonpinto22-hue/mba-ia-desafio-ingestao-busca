@@ -2,7 +2,6 @@ import os
 import json
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
-from langchain import hub
 from langsmith import Client
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -47,58 +46,62 @@ llm_runner = get_llm("runner")
 llm_evaluator = get_llm("evaluator")
 
 def create_bad_prompt():
-    """Simulates pulling a bad prompt by creating one and pushing it."""
-    print("Creating and pushing a 'bad' prompt to simulate the source...")
-    # A vague, poor quality prompt
-    bad_prompt_text = "Tell me about {topic}."
-    prompt = ChatPromptTemplate.from_template(bad_prompt_text)
-    
-    # Push to LangSmith
-    # You need a LANGCHAIN_API_KEY and correct permissions
-    repo_name = "bad-prompt-example-v1"
-    try:
-        url = hub.push(repo_name, prompt)
-        print(f"Pushed bad prompt to {url}")
-        return repo_name
-    except Exception as e:
-        print(f"Error pushing bad prompt: {e}")
-        return None
+    """Returns the repo name for the target prompt."""
+    return "leonanluppi/bug_to_user_story_v1"
 
 def pull_prompt(repo_name):
     """Pulls a prompt from LangSmith Hub."""
     print(f"Pulling prompt from {repo_name}...")
     try:
+        # Try to pull using hub
+        from langchain import hub
         prompt = hub.pull(repo_name)
         return prompt
     except Exception as e:
         print(f"Error pulling prompt: {e}")
-        # Fallback for local testing if hub fails
-        return ChatPromptTemplate.from_template("Tell me about {topic}.")
+        # Fallback to the raw prompt content we know
+        print("Using local fallback for bug_to_user_story_v1")
+        return ChatPromptTemplate.from_template(
+            """Você é um assistente que ajuda a transformar relatos de bugs de usuários em tarefas para desenvolvedores.
+
+            Analise o relato de bug abaixo e crie uma user story a partir dele.
+
+            Relato de Bug:
+            ---
+            {bug_report}
+            ---
+
+            User Story gerada:
+            """
+        )
 
 def optimize_prompt(original_prompt_text):
-    """Optimizes the prompt using an LLM."""
-    print("Optimizing prompt using advanced techniques...")
+    """Optimizes the prompt using advanced techniques (Role, Few-Shot, CoT)."""
+    print("Optimizing prompt using advanced techniques (Role, Few-Shot, CoT)...")
     
+    # Meta-Prompt that instructs the LLM to build a sophisticated prompt
     optimization_prompt = ChatPromptTemplate.from_template(
-        """You are an expert Prompt Engineer. 
-        Your task is to analyze the following prompt and optimize it using advanced techniques 
-        (like CO-STAR, Few-Shot, Chain-of-Thought, Delimiters, Persona) to improve clarity, precision, and robustness.
+        """You are a Senior Prompt Engineer. 
+        Your task is to refactor the following "Bug to User Story" prompt to make it world-class.
         
-        IMPORTANT: You MUST preserve the original input variables (e.g., {topic}). Do not change the variable names.
-        
-        The goal is to achieve high scores in F1, Clarity, and Precision when evaluated.
+        Apply the following techniques:
+        1. **Role Prompting**: Define a persona (e.g., Senior Product Owner).
+        2. **Few-Shot Learning**: Include at least one clear example of Input (Bug) -> Output (User Story + Acceptance Criteria).
+        3. **Chain of Thought**: Instruct the model to step-by-step analyze the bug before writing the story.
         
         Original Prompt:
         "{original_prompt}"
         
-        Output ONLY the optimized prompt text. Do not include explanations.
+        The new prompt must accept the input variable: {{bug_report}}.
+        
+        Output ONLY the optimized prompt template.
         """
     )
     
     chain = optimization_prompt | llm_optimizer
     optimized_text = chain.invoke({"original_prompt": original_prompt_text}).content
     
-    # Clean up any potential markdown code blocks if the LLM adds them
+    # Clean up
     optimized_text = optimized_text.replace("```markdown", "").replace("```", "").strip()
     
     print(f"Optimized Prompt: \n{optimized_text}\n")
@@ -126,17 +129,17 @@ def evaluate_metrics(prompt_template, sample_inputs):
 
         # 2. Evaluate Output & Prompt Pair (Using the evaluator model)
         eval_prompt = ChatPromptTemplate.from_template(
-            """You are a strict evaluator. Analyze the Quality of the Prompt and the Output.
+            """You are a Senior QA Specialist. Evaluate the quality of the User Story generated from a Bug Report.
             
             Prompt Used: "{prompt_text}"
-            Input Variable: {input}
-            Generated Output: "{output}"
+            Bug Report Input: {input}
+            Generated User Story: "{output}"
             
             Rate the following metrics on a scale from 0.0 to 1.0:
             
-            1. Clarity (0.0-1.0): Is the prompt text clear, unambiguous, and well-structured?
-            2. Precision (0.0-1.0): Does the output precisely follow the intent of the prompt without hallucination or deviation?
-            3. F1-Score (0.0-1.0): Consider this a proxy for "Semantic F1". Does the output cover all necessary key points required by a high-quality answer for this topic? (Harmonic mean of precision and recall of facts).
+            1. Clarity (0.0-1.0): Is the User Story clear, following standard format (As a, I want, So that)?
+            2. Precision (0.0-1.0): Does it accurately reflect the bug reported without adding unrelated features?
+            3. F1-Score (0.0-1.0): (Proxy) Does it include Acceptance Criteria that cover the fix verification?
             
             Return the scores in JSON format: {{"clarity": float, "precision": float, "f1": float}}
             """
@@ -177,9 +180,16 @@ def main():
     
     # Extract text (handling different prompt types simply)
     try:
-        original_text = bad_prompt.messages[0].prompt.template
+        # Check if it's a ChatPromptTemplate with messages
+        if hasattr(bad_prompt, 'messages') and bad_prompt.messages:
+            original_text = bad_prompt.messages[0].prompt.template
+        # Check if it's a StringPromptTemplate (e.g. PromptTemplate)
+        elif hasattr(bad_prompt, 'template'):
+            original_text = bad_prompt.template
+        else:
+            original_text = str(bad_prompt)
     except:
-        original_text = "Tell me about {topic}."
+        original_text = "Analyze bug: {bug_report}"
 
     print(f"Original Prompt: {original_text}")
 
@@ -191,7 +201,10 @@ def main():
     current_text = original_text
     
     # Define sample inputs for evaluation
-    sample_inputs = [{"topic": "Quantum Computing"}, {"topic": "The Renaissance"}]
+    sample_inputs = [
+        {"bug_report": "When I click the 'Buy' button on the checkout page, nothing happens and the spinner keeps loading forever. I am on Chrome v90."},
+        {"bug_report": "The profile image uploads but shows as broken link on the dashboard. It works fine on the settings page."}
+    ]
 
     for i in range(max_retries):
         print(f"\n--- Optimization Round {i+1} ---")
@@ -212,6 +225,7 @@ def main():
             # 4. Push
             new_repo_name = f"{repo_name}-optimized"
             try:
+                from langchain import hub
                 url = hub.push(new_repo_name, optimized_prompt)
                 print(f"Pushed optimized prompt to {url}")
             except Exception as e:

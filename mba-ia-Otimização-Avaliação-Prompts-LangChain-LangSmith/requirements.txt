@@ -5,3 +5,4 @@ langchain-google-genai
 openai
 python-dotenv
 pandas
+pyyaml

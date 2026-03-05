@@ -1,0 +1,23 @@
+- name: leonanluppi/bug_to_user_story_v2
+  input_variables:
+  - bug_report
+  template: 'Você é um assistente que ajuda a transformar relatos de bugs de usuários
+    em tarefas para desenvolvedores.
+
+
+    Analise o relato de bug abaixo e crie uma user story a partir dele.
+
+
+    Relato de Bug:
+
+    ---
+
+    {bug_report}
+
+    ---
+
+
+    User Story gerada:
+
+
+    {bug_report}'
